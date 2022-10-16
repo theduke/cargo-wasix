@@ -457,8 +457,16 @@ struct GithubAsset {
 
 /// Download a pre-built toolchain from Github releases.
 fn download_toolchain(target: &str, toolchains_root_dir: &Path) -> Result<PathBuf, anyhow::Error> {
+    let mut headers = reqwest::header::HeaderMap::new();
+
+    // Use a GITHUB_TOKEN env var as auth token if present.
+    // Useful on Github Actions CI, since those IPs often get rate limited.
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        headers.insert("authorization", format!("Bearer {token}").parse().unwrap());
+    }
     let client = reqwest::blocking::Client::builder()
         .user_agent("cargo-wasix")
+        .default_headers(headers)
         .build()?;
 
     let repo = RUST_REPO
